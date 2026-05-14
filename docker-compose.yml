@@ -1,17 +1,42 @@
 version: '3.8'
 
-# Optional: run storage-service in Docker with a persistent volume for local files.
-# Copy .env.example to .env before `docker compose up` (compose reads .env for interpolation; env_file passes vars into the container).
+# Copy .env.example to .env before `docker compose up`.
+# Postgres is exposed on host port 5440 (see DB_URL in .env.example for local dev outside Docker).
 
 services:
+  postgres-storage:
+    image: postgres:16-alpine
+    container_name: postgres-storage
+    environment:
+      POSTGRES_DB: storagedb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5440:5432"
+    volumes:
+      - storage_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d storagedb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - storage-network
+
   storage-service:
     build: .
     container_name: storage-service
+    depends_on:
+      postgres-storage:
+        condition: service_healthy
     ports:
       - "8087:8087"
     env_file:
       - .env
     environment:
+      DB_URL: jdbc:postgresql://postgres-storage:5432/storagedb
+      DB_USERNAME: admin
+      DB_PASSWORD: password
       STORAGE_LOCAL_ROOT: /app/data/storage
     volumes:
       - storage_local_data:/app/data/storage
@@ -20,6 +45,7 @@ services:
 
 volumes:
   storage_local_data:
+  storage_pg_data:
 
 networks:
   storage-network:

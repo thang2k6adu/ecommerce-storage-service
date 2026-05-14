@@ -24,7 +24,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Storage Service API")
-                        .description("API documentation for Storage Service (Cloudinary or local)")
+                        .description("Uploads (POST /uploads), local or Cloudinary storage, metadata in PostgreSQL")
                         .version("v1"))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
     }

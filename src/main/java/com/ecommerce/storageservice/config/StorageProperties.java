@@ -6,12 +6,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @Setter
-@ConfigurationProperties(prefix = "app.storage")
+@ConfigurationProperties(prefix = "storage")
 public class StorageProperties {
 
-    private Provider provider = Provider.LOCAL;
+    private Vendor provider = Vendor.LOCAL;
 
-    private String allowedExtensions = "jpg,jpeg,png,webp";
+    private String allowedExtensions = "jpg,jpeg,png,webp,gif,pdf";
 
     private long maxSize = 10 * 1024 * 1024L;
 
@@ -19,7 +19,7 @@ public class StorageProperties {
 
     private final Local local = new Local();
 
-    public enum Provider {
+    public enum Vendor {
         LOCAL,
         CLOUDINARY
     }
@@ -30,13 +30,12 @@ public class StorageProperties {
         private String cloudName;
         private String apiKey;
         private String apiSecret;
-        private String folder = "ecommerce";
     }
 
     @Getter
     @Setter
     public static class Local {
         private String rootDir = "./data/storage";
-        private String publicBaseUrl = "http://localhost:8087/api/storage/files";
+        private String publicBaseUrl = "http://localhost:8087";
     }
 }

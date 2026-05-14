@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@ConditionalOnProperty(name = "app.storage.provider", havingValue = "cloudinary")
+@ConditionalOnProperty(name = "storage.provider", havingValue = "cloudinary")
 public class CloudinaryClientConfig {
 
     @Bean

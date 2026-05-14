@@ -30,9 +30,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/storage/files/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/storage/upload").hasAnyRole("ADMIN", "STORAGE_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/storage").hasAnyRole("ADMIN", "STORAGE_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/uploads").hasAnyRole("ADMIN", "STORAGE_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/uploads/**").hasAnyRole("ADMIN", "STORAGE_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

@@ -1,13 +1,14 @@
-package com.ecommerce.storageservice.modules.storage.backend;
+package com.ecommerce.storageservice.modules.upload;
 
 import com.ecommerce.storageservice.common.exception.BadRequestException;
 import com.ecommerce.storageservice.common.exception.ResourceNotFoundException;
 import com.ecommerce.storageservice.config.StorageProperties;
-import com.ecommerce.storageservice.modules.storage.dto.UploadResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -15,48 +16,30 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.UUID;
 
+@Service
+@ConditionalOnProperty(name = "storage.provider", havingValue = "local")
 @RequiredArgsConstructor
 @Slf4j
-public class LocalStorageBackend implements StorageBackend {
+public class LocalStorageProvider implements StorageProvider {
 
     private final StorageProperties storageProperties;
 
     @Override
-    public UploadResponse upload(MultipartFile file, String folder) {
+    public StoredFile upload(MultipartFile file, String objectKey) {
         try {
             Path root = getRootPath();
-            Path dir = root.resolve(folder).normalize();
-            if (!dir.startsWith(root)) {
-                throw new BadRequestException("Invalid storage path");
-            }
-            Files.createDirectories(dir);
-
-            String originalFilename = file.getOriginalFilename();
-            String extension = originalFilename != null && originalFilename.contains(".")
-                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
-                    : "";
-            String filename = UUID.randomUUID() + extension;
-            Path destination = dir.resolve(filename).normalize();
+            Path destination = root.resolve(objectKey).normalize();
             if (!destination.startsWith(root)) {
                 throw new BadRequestException("Invalid storage path");
             }
-
+            Files.createDirectories(destination.getParent());
             Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-
-            String relative = root.relativize(destination).toString().replace('\\', '/');
-            String baseUrl = storageProperties.getLocal().getPublicBaseUrl().replaceAll("/+$", "");
-            String url = baseUrl + "/" + relative;
-
-            log.info("Local file stored: {}", url);
-            return UploadResponse.builder()
-                    .url(url)
-                    .objectKey(relative)
-                    .provider(StorageProperties.Provider.LOCAL.name().toLowerCase())
-                    .build();
+            String url = UploadUrls.joinPublic(storageProperties.getLocal().getPublicBaseUrl(), objectKey);
+            log.info("Local upload successful: {}", url);
+            return new StoredFile(url, objectKey);
         } catch (IOException e) {
-            log.error("Error saving file locally: ", e);
+            log.error("Local upload failed: ", e);
             throw new BadRequestException("Failed to upload file: " + e.getMessage());
         }
     }
@@ -66,15 +49,16 @@ public class LocalStorageBackend implements StorageBackend {
         try {
             Path path = resolveExisting(objectKey);
             Files.deleteIfExists(path);
-            log.info("Local file deleted: {}", objectKey);
+            log.info("Local delete successful: {}", objectKey);
         } catch (IOException e) {
-            log.error("Error deleting local file: ", e);
+            log.error("Local delete failed: ", e);
             throw new BadRequestException("Failed to delete file: " + e.getMessage());
         }
     }
 
-    public Resource loadAsResource(String relativePath) {
-        Path path = resolveExisting(relativePath);
+    public Resource loadAsResource(String pathAfterUploadsPrefix) {
+        String objectKey = "uploads/" + pathAfterUploadsPrefix.replace('\\', '/').replaceAll("^/+", "");
+        Path path = resolveExisting(objectKey);
         return new FileSystemResource(path.toFile());
     }
 

@@ -22,6 +22,6 @@ COPY --from=builder /workspace/app.jar ./app.jar
 EXPOSE 8087
 ENV JAVA_OPTS=""
 ENV STORAGE_LOCAL_ROOT=/app/data/storage
-ENV STORAGE_PUBLIC_BASE_URL=http://localhost:8087/api/storage/files
+ENV STORAGE_PUBLIC_BASE_URL=http://localhost:8087
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

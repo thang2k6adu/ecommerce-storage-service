@@ -1,7 +1,6 @@
-package com.ecommerce.storageservice.modules.storage;
+package com.ecommerce.storageservice.modules.upload;
 
 import com.ecommerce.storageservice.common.exception.BadRequestException;
-import com.ecommerce.storageservice.modules.storage.backend.LocalStorageBackend;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
@@ -17,19 +16,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 @RestController
-@RequestMapping("/api/storage/files")
-@ConditionalOnProperty(name = "app.storage.provider", havingValue = "local")
+@RequestMapping("/uploads")
+@ConditionalOnProperty(name = "storage.provider", havingValue = "local")
 @RequiredArgsConstructor
-public class LocalFileController {
+public class LocalUploadResourceController {
 
-    private final LocalStorageBackend localStorageBackend;
+    private final LocalStorageProvider localStorageProvider;
 
     @GetMapping("/{*relativePath}")
     public ResponseEntity<Resource> getFile(@PathVariable("relativePath") String relativePath) {
         if (relativePath == null || relativePath.contains("..")) {
             throw new BadRequestException("Invalid path");
         }
-        Resource resource = localStorageBackend.loadAsResource(relativePath);
+        Resource resource = localStorageProvider.loadAsResource(relativePath);
         try {
             Path path = resource.getFile().toPath();
             String contentType = Files.probeContentType(path);
