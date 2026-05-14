@@ -1,0 +1,26 @@
+version: '3.8'
+
+# Optional: run storage-service in Docker with a persistent volume for local files.
+# Copy .env.example to .env before `docker compose up` (compose reads .env for interpolation; env_file passes vars into the container).
+
+services:
+  storage-service:
+    build: .
+    container_name: storage-service
+    ports:
+      - "8087:8087"
+    env_file:
+      - .env
+    environment:
+      STORAGE_LOCAL_ROOT: /app/data/storage
+    volumes:
+      - storage_local_data:/app/data/storage
+    networks:
+      - storage-network
+
+volumes:
+  storage_local_data:
+
+networks:
+  storage-network:
+    driver: bridge
