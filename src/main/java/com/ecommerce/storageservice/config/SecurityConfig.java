@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/uploads").hasAnyRole("ADMIN", "STORAGE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/uploads").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/uploads/**").hasAnyRole("ADMIN", "STORAGE_ADMIN")
                         .anyRequest().authenticated()
                 )
