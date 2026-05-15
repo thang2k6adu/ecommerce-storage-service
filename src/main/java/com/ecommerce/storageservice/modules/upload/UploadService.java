@@ -8,10 +8,13 @@ import com.ecommerce.storageservice.modules.upload.entity.StoredObjectEntity;
 import com.ecommerce.storageservice.modules.upload.repository.StoredObjectRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.Tika;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Arrays;
@@ -24,6 +27,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class UploadService {
+
+    private static final String OCTET_STREAM = "application/octet-stream";
+
+    private final Tika tika = new Tika();
 
     private final StorageProvider storageProvider;
     private final StorageProperties storageProperties;
@@ -92,13 +99,57 @@ public class UploadService {
         if (extension.isEmpty()) {
             throw new BadRequestException("Could not determine file extension");
         }
-        Set<String> allowed = Arrays.stream(storageProperties.getAllowedExtensions().split(","))
+        Set<String> allowedExtensions = csvToLowerSet(storageProperties.getAllowedExtensions());
+        if (!allowedExtensions.contains(extension.toLowerCase(Locale.ROOT))) {
+            throw new BadRequestException(
+                    "File type not allowed. Allowed extensions: " + storageProperties.getAllowedExtensions());
+        }
+
+        Set<String> allowedMimes = csvToLowerSet(storageProperties.getAllowedMimeTypes());
+        if (allowedMimes.isEmpty()) {
+            throw new BadRequestException("Server misconfiguration: no allowed MIME types configured");
+        }
+
+        String detectedMime;
+        try (InputStream in = file.getInputStream()) {
+            // Do not pass filename: avoids letting a forged extension influence sniffing.
+            detectedMime = tika.detect(in);
+        } catch (IOException e) {
+            log.warn("Failed to read upload for content sniffing", e);
+            throw new BadRequestException("Could not validate file content");
+        }
+
+        String normalizedDetected = normalizeMimeType(detectedMime);
+        if (normalizedDetected.isEmpty() || !allowedMimes.contains(normalizedDetected)) {
+            throw new BadRequestException("File content does not match an allowed type (magic-byte check failed)");
+        }
+
+        String declared = normalizeMimeType(file.getContentType());
+        if (!declared.isEmpty()) {
+            if (!allowedMimes.contains(declared)) {
+                throw new BadRequestException("Declared content type is not allowed");
+            }
+            if (!OCTET_STREAM.equals(declared) && !declared.equals(normalizedDetected)) {
+                throw new BadRequestException("Declared content type does not match actual file contents");
+            }
+        }
+        // Optional: virus scan (e.g. ClamAV) after structural checks pass.
+    }
+
+    private static Set<String> csvToLowerSet(String csv) {
+        return Arrays.stream(csv.split(","))
                 .map(s -> s.trim().toLowerCase(Locale.ROOT))
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toSet());
-        if (!allowed.contains(extension.toLowerCase(Locale.ROOT))) {
-            throw new BadRequestException("File type not allowed. Allowed: " + storageProperties.getAllowedExtensions());
+    }
+
+    private static String normalizeMimeType(String mime) {
+        if (mime == null) {
+            return "";
         }
+        int semi = mime.indexOf(';');
+        String base = semi >= 0 ? mime.substring(0, semi) : mime;
+        return base.trim().toLowerCase(Locale.ROOT);
     }
 
     private static String resolveExtension(String originalFilename) {

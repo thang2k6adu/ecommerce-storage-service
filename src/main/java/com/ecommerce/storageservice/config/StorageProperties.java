@@ -13,6 +13,8 @@ public class StorageProperties {
 
     private String allowedExtensions = "jpg,jpeg,png,webp,gif,pdf";
 
+    private String allowedMimeTypes = "image/jpeg,image/png,image/webp,image/gif,application/pdf";
+
     private long maxSize = 10 * 1024 * 1024L;
 
     private final Cloudinary cloudinary = new Cloudinary();
