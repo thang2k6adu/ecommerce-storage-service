@@ -11,17 +11,12 @@ RUN mvn -B -ntp clean package -DskipTests \
 FROM eclipse-temurin:17-jre AS runtime
 WORKDIR /app
 
-RUN useradd --system --create-home --uid 1001 appuser \
-    && mkdir -p /app/data/storage \
-    && chown -R appuser:appuser /app/data
-
+RUN useradd --system --create-home --uid 1001 appuser
 USER appuser
 
 COPY --from=builder /workspace/app.jar ./app.jar
 
-EXPOSE 8087
+EXPOSE 8081
 ENV JAVA_OPTS=""
-ENV STORAGE_LOCAL_ROOT=/app/data/storage
-ENV STORAGE_PUBLIC_BASE_URL=http://localhost:8087
-
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+
