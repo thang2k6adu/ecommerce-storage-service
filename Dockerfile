@@ -19,4 +19,3 @@ COPY --from=builder /workspace/app.jar ./app.jar
 EXPOSE 8081
 ENV JAVA_OPTS=""
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
-
